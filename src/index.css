@@ -6,7 +6,6 @@
   --theme-color: #3B82F6;
 }
 
-/* Use the theme color in your components */
 .theme-bg {
   background-color: var(--theme-color);
 }
@@ -14,8 +13,6 @@
 .theme-text {
   color: var(--theme-color);
 }
-
-/* Add more theme-related classes as needed */
 
 ::-webkit-scrollbar {
     display: none;
@@ -26,12 +23,12 @@ body, html {
   padding: 0;
   overflow-x: hidden;
   font-family: 'Space Grotesk', sans-serif;
-  color: #f0f0f0;
   background-color: #000;
 }
 
 .landing-page {
   position: relative;
+  color: #f0f0f0;
 }
 
 .hero-section {
