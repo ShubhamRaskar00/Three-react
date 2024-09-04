@@ -1,30 +1,47 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from "react";
 import { useFrame, useLoader } from '@react-three/fiber';
 import { Sphere } from '@react-three/drei';
 import * as THREE from 'three';
 
 function Planet({ scrollPosition, ...props }) {
   const mesh = useRef();
-  const texture = useLoader(THREE.TextureLoader, '/images/mr.jpg');
-  const normalMap = useLoader(THREE.TextureLoader, '/images/mr2.jpg');
-  const displacementMap = useLoader(THREE.TextureLoader, '/images/mars_displacement_map.jpg');
+  const texture = useLoader(THREE.TextureLoader, "/images/mr.jpg");
+  const normalMap = useLoader(THREE.TextureLoader, "/images/mr2.jpg");
+  const displacementMap = useLoader(
+    THREE.TextureLoader,
+    "/images/mars_displacement_map.jpg"
+  );
+
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [initialRotation, setInitialRotation] = useState(0);
+  const rotationDuration = 2; // 2 seconds duration
 
   useEffect(() => {
-    if (mesh.current) {
-      mesh.current.rotation.y = scrollPosition * 0.001;
+    if (texture && normalMap && displacementMap) {
+      setIsLoaded(true);
     }
-  }, [scrollPosition]);
+  }, [texture, normalMap, displacementMap]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (mesh.current) {
-      // Add a slight constant rotation for a more dynamic effect
-      mesh.current.rotation.y += 0.001;
+      if (isLoaded) {
+        const rotationSpeed = (Math.PI * 2) / rotationDuration; // Full rotation in 5 seconds
+        mesh.current.rotation.y += rotationSpeed * delta;
+        setInitialRotation((prev) => prev + rotationSpeed * delta);
+
+        if (initialRotation >= Math.PI * 2) {
+          setIsLoaded(false);
+        }
+      } else {
+        mesh.current.rotation.y =
+          scrollPosition * 0.001 + state.clock.getElapsedTime() * 0.1;
+      }
     }
   });
 
   return (
     <Sphere args={[2, 256, 256]} ref={mesh} {...props}>
-      <meshStandardMaterial 
+      <meshStandardMaterial
         map={texture}
         normalMap={normalMap}
         displacementMap={displacementMap}

@@ -5,7 +5,6 @@ import { animateScroll as scroll } from "react-scroll";
 import { Planet, Footer , SpaceBackground } from "../../components/";
 import { Link } from "react-router-dom";
 
-
 function LandingPage() {
   const [scrollPosition, setScrollPosition] = useState(0);
   const [showScrollIcon, setShowScrollIcon] = useState(true);
