@@ -1,6 +1,6 @@
 # Getting Started with Create React App
 
-Live site (https://three-react-eight.vercel.app/).
+Live site https://three-react-eight.vercel.app/.
 
 ## Available Scripts
 
