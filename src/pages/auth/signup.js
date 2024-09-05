@@ -1,13 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { auth, provider, db } from '../../firebase';
 import { signInWithPopup, createUserWithEmailAndPassword } from 'firebase/auth';
 import { toast } from 'react-toastify';
 import { LoadCanvasTemplate, loadCaptchaEnginge, validateCaptcha } from 'react-simple-captcha';
 import { doc, setDoc } from 'firebase/firestore';
-import { Button, Heading, Input, Label, AuthLayout, ErrorMessage } from '../../components';
+import { Button, Heading, Input, Label, AuthLayout, ErrorMessage, Loader } from '../../components';
 import { useAuth } from "../../contexts";
-import { useNavigate } from 'react-router-dom';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, useGLTF, PerspectiveCamera } from '@react-three/drei';
+import { Environment } from "@react-three/drei";
+
+// Add this CSS to your stylesheet or use a CSS-in-JS solution
+const loaderStyles = `
+  .loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+function Loader1() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+      <style>{loaderStyles}</style>
+      <div className="loader"></div>
+    </div>
+  );
+}
+
+function MechanicalEye({ mousePosition, onLoad }) {
+  const { scene } = useGLTF(
+    "https://dl.dropboxusercontent.com/s/uo993af3t680asm7zq5c0/portal_2_wheatly_rig.glb?rlkey=rvapg57h8xxx79d6cqsgbapva&st=2n7o2qne"
+  );
+  const eyeRef = useRef();
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (scene) {
+      scene.position.set(0, 0, 0);
+      camera.position.set(0, 0, 4);
+      camera.updateProjectionMatrix();
+      onLoad();
+    }
+  }, [scene, camera, onLoad]);
+
+  useFrame(() => {
+    if (eyeRef.current) {
+      eyeRef.current.rotation.y = mousePosition.x * 0.5;
+      eyeRef.current.rotation.x = -mousePosition.y * 0.5;
+    }
+  });
+
+  if (!scene) return null;
+
+  return <primitive object={scene} ref={eyeRef} scale={[2, 2, 2]} />;
+}
 
 function Signup() {
   const [firstName, setFirstName] = useState('');
@@ -18,6 +73,10 @@ function Signup() {
   const [captchaInput, setCaptchaInput] = useState('');
   const [errors, setErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -45,19 +104,33 @@ function Signup() {
   const checkPasswordStrength = (password) => {
     let strength = 0;
     if (password.length >= 8) strength++;
-    if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
-    if (password.match(/\d/)) strength++;
+    if (password.match(/[a-z]/) && password.match(/[A-Z]/) && password.match(/\d/)) strength++;
     if (password.match(/[^a-zA-Z\d]/)) strength++;
     setPasswordStrength(strength);
   };
 
   const handlePasswordChange = (e) => {
-    const newPassword = e.target.value;
+    const newPassword = e.target.value.replace(/\s/g, ''); // Remove all whitespace
     setPassword(newPassword);
     checkPasswordStrength(newPassword);
   };
 
-  const handleSignUp = async () => {
+  const getPasswordStrengthColor = (strength) => {
+    switch (strength) {
+      case 1:
+        return "bg-green-500";
+      case 2:
+        return 'bg-yellow-500';
+      case 3:
+        return "bg-red-500";
+      default:
+        return 'bg-gray-300';
+    }
+  };
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
     let validationErrors = {};
 
     if (!firstName) {
@@ -89,6 +162,7 @@ function Signup() {
     }
 
     if (Object.keys(validationErrors).length > 0) {
+      setIsLoading(false);
       setErrors(validationErrors);
       return;
     }
@@ -105,9 +179,11 @@ function Signup() {
         phoneNumber,
         email,
       });
+      setIsLoading(false);
       navigate("/dashboard");
       toast.success('Successfully signed up!');
     } catch (error) {
+      setIsLoading(false);
       toast.error(`Error: ${error.message}`);
     }
   };
@@ -127,10 +203,82 @@ function Signup() {
       });
   };
 
+  const handleInputChange = (e, setter) => {
+    const { value } = e.target;
+    setter(value.trim());
+  };
+
+  const handlePhoneChange = (e) => {
+    const { value } = e.target;
+    // Allow only numbers and common phone number characters
+    const sanitizedValue = value.replace(/[^\d+()-]/g, '');
+    setPhoneNumber(sanitizedValue);
+  };
+
+  const handleBack = () => {
+    navigate(-1);
+  }
+
+  const handleMouseMove = (event) => {
+    const { clientX, clientY } = event;
+    const { innerWidth, innerHeight } = window;
+    const x = (clientX / innerWidth) * 2 - 1;
+    const y = -(clientY / innerHeight) * 2 + 1;
+    setMousePosition({ x, y });
+  };
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
   return (
     <AuthLayout>
+      <Button
+        onClick={handleBack}
+        className="bg-gray-300 hover:bg-gray-400 text-black absolute top-0 left-0 m-4 rounded-full p-2"
+      >
+        Back
+      </Button>
       <Heading>Signup</Heading>
-      <form>
+      <div className="relative">
+        {isModelLoading && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 10,
+            }}
+          >
+            <Loader1 />
+          </div>
+        )}
+        <Canvas>
+          <PerspectiveCamera makeDefault fov={50} position={[0, 0, 2]} />
+          <ambientLight intensity={0.5} />
+          <pointLight position={[10, 10, 10]} intensity={0.5} />
+          <Environment preset="studio" />
+          <Suspense fallback={null}>
+            <MechanicalEye
+              mousePosition={mousePosition}
+              onLoad={() => {
+                setIsModelLoading(false);
+              }}
+            />
+          </Suspense>
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            enableRotate={false}
+          />
+        </Canvas>
+      </div>
+      <form onSubmit={handleSignUp}>
         <div className="mb-4">
           <Label htmlFor="firstName">First Name</Label>
           <Input
@@ -160,7 +308,7 @@ function Signup() {
             type="tel"
             placeholder="Phone Number"
             value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
+            onChange={handlePhoneChange}
           />
           <ErrorMessage message={errors.phoneNumber} />
         </div>
@@ -171,7 +319,7 @@ function Signup() {
             type="email"
             placeholder="Email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => handleInputChange(e, setEmail)}
           />
           <ErrorMessage message={errors.email} />
         </div>
@@ -179,31 +327,16 @@ function Signup() {
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
             <div className="flex">
-              <span
-                className={`h-2 w-2 rounded-full mr-1 ${
-                  passwordStrength === 1
-                    ? "bg-green-500"
-                    : passwordStrength === 2
-                    ? "bg-orange-500"
-                    : passwordStrength === 3
-                    ? "bg-red-500"
-                    : "bg-gray-300"
-                }`}
-              ></span>
-              <span
-                className={`h-2 w-2 rounded-full mr-1 ${
-                  passwordStrength === 2
-                    ? "bg-orange-500"
-                    : passwordStrength === 3
-                    ? "bg-red-500"
-                    : "bg-gray-300"
-                }`}
-              ></span>
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  passwordStrength === 3 ? "bg-red-500" : "bg-gray-300"
-                }`}
-              ></span>
+              {[...Array(3)].map((_, index) => (
+                <span
+                  key={index}
+                  className={`h-2 w-2 rounded-full mr-1 ${
+                    index < passwordStrength
+                      ? getPasswordStrengthColor(passwordStrength)
+                      : "bg-gray-300"
+                  }`}
+                ></span>
+              ))}
             </div>
           </div>
           <Input
@@ -230,10 +363,14 @@ function Signup() {
         </div>
         <div className="flex items-center justify-end">
           <Button
-            onClick={handleSignUp}
-            className="bg-blue-500 hover:bg-blue-700 text-white"
+            type="submit"
+            className={
+              !isLoading ? "bg-blue-500 hover:bg-blue-700 text-white" : ""
+            }
+            fullWidth
+            disabled={isLoading}
           >
-            Sign Up
+            {isLoading ? <Loader /> : "Sign Up"}
           </Button>
         </div>
       </form>

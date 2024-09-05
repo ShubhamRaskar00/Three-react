@@ -1,15 +1,74 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { auth, provider } from '../../firebase';
 import { signInWithPopup, signInWithEmailAndPassword } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { Button, Heading, Input, Label, AuthLayout, ErrorMessage } from '../../components';
+import { Button, Heading, Input, Label, AuthLayout, ErrorMessage, Loader } from '../../components';
 import { useAuth } from '../../contexts';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, useGLTF, PerspectiveCamera } from '@react-three/drei';
+import * as THREE from "three";
+import { Environment } from "@react-three/drei";
+
+// Add this CSS to your stylesheet or use a CSS-in-JS solution
+const loaderStyles = `
+  .loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+function Loader1() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+      <style>{loaderStyles}</style>
+      <div className="loader"></div>
+    </div>
+  );
+}
+
+function MechanicalEye({ mousePosition, onLoad }) {
+  const { scene } = useGLTF('https://dl.dropboxusercontent.com/s/xahl8x7tb7deiz775kyx4/mecanic_eye.glb?rlkey=9d018nqmacb6fibgcswyqppux&st=cttrtprt');
+  const eyeRef = useRef();
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (scene) {
+      scene.position.set(0, 0, 0);
+      camera.position.set(0, 0, 3);
+      camera.updateProjectionMatrix();
+      onLoad(); // Call this when the model is ready
+    }
+  }, [scene, camera, onLoad]);
+
+  useFrame(() => {
+    if (eyeRef.current) {
+      eyeRef.current.rotation.y = mousePosition.x * 0.5;
+      eyeRef.current.rotation.x = -mousePosition.y * 0.5;
+    }
+  });
+
+  if (!scene) return null;
+
+  return <primitive object={scene} ref={eyeRef} scale={[1, 1, 1]} />;
+}
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -25,7 +84,9 @@ function Login() {
     return re.test(String(email).toLowerCase());
   };
 
-  const handleSignIn = () => {
+  const handleSignIn = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
     let validationErrors = {};
 
     if (!email) {
@@ -42,19 +103,19 @@ function Login() {
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      setIsLoading(false);
       return;
     }
 
     signInWithEmailAndPassword(auth, email, password)
       .then((result) => {
-        // TODO: redirect to home page
         navigate("/dashboard");
-        // Handle successful sign-in
         console.log(result.user);
+        setIsLoading(false);
         toast.success('Successfully signed in!');
       })
       .catch((error) => {
-        // Handle errors
+        setIsLoading(false);
         toast.error(`Error: ${error.message}`);
       });
   };
@@ -64,20 +125,69 @@ function Login() {
       .then((result) => {
         console.log(result.user);
         navigate("/dashboard");
-        // TODO: redirect to home page
-        // Handle successful sign-in
         toast.success('Successfully signed in with Google!');
       })
       .catch((error) => {
-        // Handle errors
         toast.error(`Error: ${error.message}`);
       });
   };
 
+  const handleBack = () => {
+    navigate(-1);
+  };
+
+  const handleMouseMove = (event) => {
+    const { clientX, clientY } = event;
+    const { innerWidth, innerHeight } = window;
+    const x = (clientX / innerWidth) * 2 - 1;
+    const y = -(clientY / innerHeight) * 2 + 1;
+    setMousePosition({ x, y });
+  };
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, []);
+
   return (
     <AuthLayout>
-      <Heading>Login</Heading>
-      <form>
+      <Button
+        onClick={handleBack}
+        className="bg-gray-300 hover:bg-gray-400 text-black absolute top-0 left-0 m-4 rounded-full p-2"
+      >
+        Back
+      </Button>
+      <div className="flex justify-between items-center mb-4">
+        <Heading>Login</Heading>
+      </div>
+      <div className="relative">
+        {isModelLoading && (
+          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+            <Loader1 />
+          </div>
+        )}
+        <Canvas>
+          <PerspectiveCamera makeDefault fov={50} position={[0, 0, 5]} />
+          <ambientLight intensity={0.5} />
+          <pointLight position={[10, 10, 10]} intensity={1} />
+          <directionalLight position={[-5, 5, 5]} intensity={1} />
+          <Environment preset="studio" />
+          <Suspense fallback={null}>
+            <MechanicalEye
+              mousePosition={mousePosition}
+              onLoad={() => setIsModelLoading(false)}
+            />
+          </Suspense>
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            enableRotate={false}
+          />
+        </Canvas>
+      </div>
+      <form onSubmit={handleSignIn}>
         <div className="mb-4">
           <Label htmlFor="email">Email</Label>
           <Input
@@ -102,10 +212,13 @@ function Login() {
         </div>
         <div className="flex items-center justify-between flex-row-reverse">
           <Button
-            onClick={handleSignIn}
-            className="bg-blue-500 hover:bg-blue-700 text-white"
+            type="submit"
+            className={
+              !isLoading ? "bg-blue-500 hover:bg-blue-700 text-white" : ""
+            }
+            disabled={isLoading}
           >
-            Sign In
+            {isLoading ? <Loader /> : "Sign In"}
           </Button>
           <Link
             className="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800"
@@ -115,7 +228,12 @@ function Login() {
           </Link>
         </div>
       </form>
-      <div className='my-3'>if you don't have an account, <Link to="/signup" className='text-blue-500 hover:text-blue-800'>sign up</Link></div>
+      <div className="my-3">
+        if you don't have an account,{" "}
+        <Link to="/signup" className="text-blue-500 hover:text-blue-800">
+          sign up
+        </Link>
+      </div>
       <div className="text-xl font-bold text-center my-3">OR</div>
       <div className="mt-4">
         <Button

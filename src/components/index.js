@@ -11,4 +11,5 @@ import Pagination from "./pagination";
 import Planet from "./planet";
 import Footer from "./footer";
 import SpaceBackground from "./spaceBackground";
-export { Button, Heading, Input, Label, AuthLayout, ErrorMessage, ProtectedRoute, AuthenticatedLayout, NumberBox, Pagination, Planet, Footer, SpaceBackground };
+import Loader from "./loader";
+export { Button, Heading, Input, Label, AuthLayout, ErrorMessage, ProtectedRoute, AuthenticatedLayout, NumberBox, Pagination, Planet, Footer, SpaceBackground, Loader };
