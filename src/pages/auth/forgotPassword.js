@@ -1,12 +1,22 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react';
-import { auth } from '../../firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
-import { Button, Heading, Input, Label, AuthLayout, ErrorMessage, Loader } from '../../components';
+import React, { useState, useEffect, useRef, Suspense } from "react";
+import { auth } from "../../firebase";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
+import {
+  Button,
+  Heading,
+  Input,
+  Label,
+  AuthLayout,
+  ErrorMessage,
+  Loader,
+} from "../../components";
 import { useAuth } from "../../contexts";
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, useGLTF, PerspectiveCamera } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { OrbitControls, useGLTF, PerspectiveCamera } from "@react-three/drei";
+import * as THREE from "three";
+import { Environment } from "@react-three/drei";
 
 // Add this CSS to your stylesheet or use a CSS-in-JS solution
 const loaderStyles = `
@@ -26,7 +36,14 @@ const loaderStyles = `
 
 function Loader1() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100%",
+      }}
+    >
       <style>{loaderStyles}</style>
       <div className="loader"></div>
     </div>
@@ -34,15 +51,39 @@ function Loader1() {
 }
 
 function MechanicalEye({ mousePosition, onLoad }) {
-  const { scene } = useGLTF("https://dl.dropboxusercontent.com/s/zg9l5so60meu70v52qlw7/robot_eye.glb?rlkey=zqi8zdy154ae1j9hoggh0ligv&st=b8gmbjr9");
+  const { scene } = useGLTF(
+    "https://dl.dropboxusercontent.com/s/v27f191p0qk3i6mtu4vrn/portal_corerigged_for_blender.glb?rlkey=1zom0nx5ou9k0dji7s4u4bcig&st=or6siy2p"
+  );
   const eyeRef = useRef();
   const { camera } = useThree();
 
   useEffect(() => {
     if (scene) {
       scene.position.set(0, 0, 0);
-      camera.position.set(0, 0, 3);
+      camera.position.set(0, 0, 5);
       camera.updateProjectionMatrix();
+
+      scene.traverse((child) => {
+        if (child.isMesh) {
+          child.material.side = THREE.DoubleSide;
+          child.material.needsUpdate = true;
+
+          // Preserve original material color
+          const originalColor = child.material.color.clone();
+
+          // Add subtle emissive effect only to specific parts (adjust as needed)
+          if (child.name.includes("Eye") || child.name.includes("Glow")) {
+            child.material.emissive = new THREE.Color(0x000000);
+            child.material.transparent = true;
+            child.material.opacity = 0.4;
+            child.material.emissiveIntensity = 0.2;
+          } else {
+            child.material.emissive = originalColor;
+            child.material.emissiveIntensity = 0.1;
+          }
+        }
+      });
+
       onLoad(); // Call this when the model is ready
     }
   }, [scene, camera, onLoad]);
@@ -56,11 +97,11 @@ function MechanicalEye({ mousePosition, onLoad }) {
 
   if (!scene) return null;
 
-  return <primitive object={scene} ref={eyeRef} scale={[1, 1, 1]} />;
+  return <primitive object={scene} ref={eyeRef} scale={[0.1, 0.1, 0.1]} />;
 }
 
 function ForgotPassword() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [isModelLoading, setIsModelLoading] = useState(true);
@@ -70,7 +111,7 @@ function ForgotPassword() {
   const { user } = useAuth();
 
   useEffect(() => {
-    document.title = 'Forgot Password';
+    document.title = "Forgot Password";
     if (user) {
       navigate("/dashboard");
     }
@@ -87,9 +128,9 @@ function ForgotPassword() {
     let validationErrors = {};
 
     if (!email) {
-      validationErrors.email = 'Email is required';
+      validationErrors.email = "Email is required";
     } else if (!validateEmail(email)) {
-      validationErrors.email = 'Invalid email address';
+      validationErrors.email = "Invalid email address";
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -100,8 +141,8 @@ function ForgotPassword() {
 
     sendPasswordResetEmail(auth, email)
       .then(() => {
-        navigate('/login');
-        toast.success('Password reset email sent!');
+        navigate("/login");
+        toast.success("Password reset email sent!");
         setIsLoading(false);
       })
       .catch((error) => {
@@ -123,9 +164,9 @@ function ForgotPassword() {
   };
 
   useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener("mousemove", handleMouseMove);
     };
   }, []);
 
@@ -140,25 +181,47 @@ function ForgotPassword() {
       <div className="flex justify-between items-center mb-4">
         <Heading>Forgot Password</Heading>
       </div>
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: "relative" }}>
         {isModelLoading && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 10,
+            }}
+          >
             <Loader1 />
           </div>
         )}
         <Canvas>
-          <PerspectiveCamera makeDefault fov={50} position={[0, 0, 2]} />
-          <ambientLight intensity={0.5} />
+          <PerspectiveCamera makeDefault fov={50} position={[0, 0, 5]} />
+          <ambientLight intensity={0.2} />
           <pointLight position={[10, 10, 10]} intensity={0.5} />
+          <directionalLight position={[-5, 5, 5]} intensity={0.5} />
+          <spotLight
+            position={[0, 5, 10]}
+            angle={0.3}
+            penumbra={1}
+            intensity={0.8}
+            castShadow
+          />
+          <Environment preset="studio" />
           <Suspense fallback={null}>
-            <MechanicalEye 
-              mousePosition={mousePosition} 
+            <MechanicalEye
+              mousePosition={mousePosition}
               onLoad={() => {
                 setIsModelLoading(false);
               }}
             />
           </Suspense>
-          <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            enableRotate={false}
+          />
         </Canvas>
       </div>
       <form onSubmit={handlePasswordReset}>

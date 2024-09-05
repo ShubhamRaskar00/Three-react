@@ -7,6 +7,8 @@ import { Button, Heading, Input, Label, AuthLayout, ErrorMessage, Loader } from 
 import { useAuth } from '../../contexts';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, PerspectiveCamera } from '@react-three/drei';
+import * as THREE from "three";
+import { Environment } from "@react-three/drei";
 
 // Add this CSS to your stylesheet or use a CSS-in-JS solution
 const loaderStyles = `
@@ -167,9 +169,11 @@ function Login() {
           </div>
         )}
         <Canvas>
-          <PerspectiveCamera makeDefault fov={50} position={[0, 0, 2]} />
+          <PerspectiveCamera makeDefault fov={50} position={[0, 0, 5]} />
           <ambientLight intensity={0.5} />
-          <pointLight position={[10, 10, 10]} intensity={0.5} />
+          <pointLight position={[10, 10, 10]} intensity={1} />
+          <directionalLight position={[-5, 5, 5]} intensity={1} />
+          <Environment preset="studio" />
           <Suspense fallback={null}>
             <MechanicalEye
               mousePosition={mousePosition}

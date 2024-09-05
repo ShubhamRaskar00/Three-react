@@ -9,6 +9,7 @@ import { Button, Heading, Input, Label, AuthLayout, ErrorMessage, Loader } from 
 import { useAuth } from "../../contexts";
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, PerspectiveCamera } from '@react-three/drei';
+import { Environment } from "@react-three/drei";
 
 // Add this CSS to your stylesheet or use a CSS-in-JS solution
 const loaderStyles = `
@@ -37,7 +38,7 @@ function Loader1() {
 
 function MechanicalEye({ mousePosition, onLoad }) {
   const { scene } = useGLTF(
-    "https://dl.dropboxusercontent.com/s/clgarwcljcd6a247qx34v/man_eye.glb?rlkey=fp11c08w445xxvhbdd371hmn6&st=7jxwv3ef"
+    "https://dl.dropboxusercontent.com/s/uo993af3t680asm7zq5c0/portal_2_wheatly_rig.glb?rlkey=rvapg57h8xxx79d6cqsgbapva&st=2n7o2qne"
   );
   const eyeRef = useRef();
   const { camera } = useThree();
@@ -45,9 +46,9 @@ function MechanicalEye({ mousePosition, onLoad }) {
   useEffect(() => {
     if (scene) {
       scene.position.set(0, 0, 0);
-      camera.position.set(0, 0, -300);
+      camera.position.set(0, 0, 4);
       camera.updateProjectionMatrix();
-      onLoad(); // Call this when the model is ready
+      onLoad();
     }
   }, [scene, camera, onLoad]);
 
@@ -60,7 +61,7 @@ function MechanicalEye({ mousePosition, onLoad }) {
 
   if (!scene) return null;
 
-  return <primitive object={scene} ref={eyeRef} scale={[1, 1, 1]} />;
+  return <primitive object={scene} ref={eyeRef} scale={[2, 2, 2]} />;
 }
 
 function Signup() {
@@ -242,9 +243,18 @@ function Signup() {
         Back
       </Button>
       <Heading>Signup</Heading>
-      <div className='relative'>
+      <div className="relative">
         {isModelLoading && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}>
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 10,
+            }}
+          >
             <Loader1 />
           </div>
         )}
@@ -252,15 +262,20 @@ function Signup() {
           <PerspectiveCamera makeDefault fov={50} position={[0, 0, 2]} />
           <ambientLight intensity={0.5} />
           <pointLight position={[10, 10, 10]} intensity={0.5} />
+          <Environment preset="studio" />
           <Suspense fallback={null}>
-            <MechanicalEye 
-              mousePosition={mousePosition} 
+            <MechanicalEye
+              mousePosition={mousePosition}
               onLoad={() => {
                 setIsModelLoading(false);
               }}
             />
           </Suspense>
-          <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
+          <OrbitControls
+            enableZoom={false}
+            enablePan={false}
+            enableRotate={false}
+          />
         </Canvas>
       </div>
       <form onSubmit={handleSignUp}>
