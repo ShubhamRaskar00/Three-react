@@ -64,6 +64,7 @@ function LandingPage() {
       </Canvas>
 
       <div className="content-sections" ref={contentRef}>
+        {/* TODO: Add content here */}
         <section>
           <h2>Discover the Red Planet</h2>
           <p>Explore the vast Martian landscape and uncover its ancient secrets.</p>

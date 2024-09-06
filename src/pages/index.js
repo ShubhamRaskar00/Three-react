@@ -4,5 +4,5 @@ import Dashboard from './dashboard';
 import Profile from './profile';
 import Users from './users';
 import PageNotFound from './pageNotFund';
-
-export { Login, Signup, ForgotPassword, Landing, Dashboard, Logout, Profile, Users, PageNotFound };
+import Schedule from './schedule';
+export { Login, Signup, ForgotPassword, Landing, Dashboard, Logout, Profile, Users, PageNotFound, Schedule };

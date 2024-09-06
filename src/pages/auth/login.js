@@ -110,7 +110,6 @@ function Login() {
     signInWithEmailAndPassword(auth, email, password)
       .then((result) => {
         navigate("/dashboard");
-        console.log(result.user);
         setIsLoading(false);
         toast.success('Successfully signed in!');
       })
@@ -123,7 +122,6 @@ function Login() {
   const handleGoogleSignIn = () => {
     signInWithPopup(auth, provider)
       .then((result) => {
-        console.log(result.user);
         navigate("/dashboard");
         toast.success('Successfully signed in with Google!');
       })
