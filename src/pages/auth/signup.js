@@ -170,8 +170,6 @@ function Signup() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      console.log("User created:", user);
-      // TODO: redirect to home page
       // Example: Save additional user info to Firestore
       await setDoc(doc(db, "users", user.uid), {
         firstName,
@@ -191,9 +189,7 @@ function Signup() {
   const handleGoogleSignIn = () => {
     signInWithPopup(auth, provider)
       .then((result) => {
-        console.log(result);
         navigate("/dashboard");
-        // TODO: redirect to home page
         // Handle successful sign-in
         toast.success('Successfully signed in with Google!');
       })

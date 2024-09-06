@@ -18,14 +18,12 @@ function Header() {
     }
   };
 
-  useEffect(() => {
-    console.log(user)
-  },[])
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/users', label: 'Users' },
-    { path: '/profile', label: 'Profile' },
+    { path: "/dashboard", label: "Dashboard" },
+    { path: "/users", label: "Users" },
+    { path: "/schedule", label: "Schedule" },
+    { path: "/profile", label: "Profile" },
   ];
 
   const NavLink = ({ path, label, onClick }) => (
